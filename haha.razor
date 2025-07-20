@@ -1,0 +1,171 @@
+@page "/formular"
+@inject HttpClient Http
+
+<style>
+    .section {
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        transition: border-color 0.3s, background-color 0.3s;
+    }
+
+        .section.enabled {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+
+        .section.disabled {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+</style>
+
+<EditForm Model="@formData" OnValidSubmit="SubmitAsync">
+
+    <!-- Dropdown -->
+    <div class="section @(isCategoryEnabled ? "enabled" : "disabled")">
+        <label class="form-label">Kategorie wählen:</label>
+        <InputSelect class="form-select" @bind-Value="formData.Category" @onchange="OnCategoryChanged">
+            <option value="">-- bitte wählen --</option>
+            @foreach (var option in categories)
+            {
+                <option value="@option">@option</option>
+            }
+        </InputSelect>
+    </div>
+
+    <!-- Radio Group 1 -->
+    <div class="section @(isDecision1Enabled ? "enabled" : "disabled")">
+        <label class="form-label d-block">Entscheidung 1:</label>
+        <InputRadioGroup @bind-Value="formData.Decision1" @onchange="OnDecision1Changed">
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value="@("Ja")" disabled="@(!isDecision1Enabled)" />
+                <label class="form-check-label">Ja</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value="@("Nein")" disabled="@(!isDecision1Enabled)" />
+                <label class="form-check-label">Nein</label>
+            </div>
+        </InputRadioGroup>
+    </div>
+
+    <!-- Radio Group 2 -->
+    <div class="section @(isDecision2Enabled ? "enabled" : "disabled")">
+        <label class="form-label d-block">Entscheidung 2:</label>
+        <InputRadioGroup @bind-Value="formData.Decision2" @onchange="OnDecision2Changed">
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value="@("Option A")" disabled="@(!isDecision2Enabled)" />
+                <label class="form-check-label">Option A</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value="@("Option B")" disabled="@(!isDecision2Enabled)" />
+                <label class="form-check-label">Option B</label>
+            </div>
+        </InputRadioGroup>
+    </div>
+
+    <!-- Radio Group 3 -->
+    <div class="section @(isDecision3Enabled ? "enabled" : "disabled")">
+        <label class="form-label d-block">Entscheidung 3:</label>
+        <InputRadioGroup @bind-Value="formData.Decision3" @onchange="OnDecision3Changed">
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value="@("Rot")" disabled="@(!isDecision3Enabled)" />
+                <label class="form-check-label">Rot</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <InputRadio class="form-check-input" Value=@("Blau")"disabled ="@(!isDecision3Enabled)" />
+                <label class="form-check-label">Blau</label>
+            </div>
+        </InputRadioGroup>
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@(!isSubmitEnabled)">Abschicken</button>
+</EditForm>
+
+@code {
+    private readonly List<string> categories = new() { "Vertrieb", "Einkauf", "Fertigung" };
+
+    public class MyFormData
+    {
+        public string Category { get; set; } = string.Empty;
+        public string Decision1 { get; set; } = string.Empty;
+        public string Decision2 { get; set; } = string.Empty;
+        public string Decision3 { get; set; } = string.Empty;
+    }
+
+    private MyFormData formData = new();
+
+    private bool isCategoryEnabled = true; // Dropdown immer aktiv
+    private bool isDecision1Enabled = false;
+    private bool isDecision2Enabled = false;
+    private bool isDecision3Enabled = false;
+    private bool isSubmitEnabled = false;
+
+    private void OnCategoryChanged(ChangeEventArgs e)
+    {
+        isDecision1Enabled = !string.IsNullOrEmpty(formData.Category);
+
+        if (!isDecision1Enabled)
+        {
+            isDecision2Enabled = false;
+            isDecision3Enabled = false;
+            isSubmitEnabled = false;
+
+            formData.Decision1 = string.Empty;
+            formData.Decision2 = string.Empty;
+            formData.Decision3 = string.Empty;
+        }
+    }
+
+    private void OnDecision1Changed(ChangeEventArgs e)
+    {
+        isDecision2Enabled = !string.IsNullOrEmpty(formData.Decision1);
+
+        if (!isDecision2Enabled)
+        {
+            isDecision3Enabled = false;
+            isSubmitEnabled = false;
+
+            formData.Decision2 = string.Empty;
+            formData.Decision3 = string.Empty;
+        }
+    }
+
+    private void OnDecision2Changed(ChangeEventArgs e)
+    {
+        isDecision3Enabled = !string.IsNullOrEmpty(formData.Decision2);
+
+        if (!isDecision3Enabled)
+        {
+            isSubmitEnabled = false;
+            formData.Decision3 = string.Empty;
+        }
+    }
+
+    private void OnDecision3Changed(ChangeEventArgs e)
+    {
+        isSubmitEnabled = !string.IsNullOrEmpty(formData.Decision3);
+    }
+
+    private async Task SubmitAsync()
+    {
+        var payload = $"{formData.Category}|{formData.Decision1}|{formData.Decision2}|{formData.Decision3}";
+
+        var content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { value = payload }),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await Http.PostAsync("https://sap.example.com/odata/Choices", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Erfolgsmeldung oder Logik
+        }
+        else
+        {
+            // Fehlerbehandlung
+        }
+    }
+}
